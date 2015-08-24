@@ -1,0 +1,105 @@
+---
+title: "Prediction of MPG by Car Parameters"
+author: "Miao"
+date: "August 23, 2015"
+output: slidy_presentation
+---
+
+## Development of Application
+
+### Part1: Shiny Application  
+- URL: *https://leemiao1984.shinyapps.io/carmpg*
+- A shiny Application shows the relationship between variables and MPG.
+
+### Part2: Reproducible Pitch Presentation  
+- URL: *http://rpubs.com/leemiao1984/Developing_Data_Products_Project*
+
+### Get all SourceCode @Github:
+
+```
+git clone https://github.com/leemiao1984/Developing_Data_Product
+```
+
+## mtcars dataset - Description
+
+### Motor Trend Car Road Tests
+
+> The data was extracted from the 1974 Motor Trend US magazine, and comprises fuel consumption and 10 aspects of automobile design and performance for 32 automobiles (1973-74 models).
+
+### Source
+> Henderson and Velleman (1981), Building multiple regression models interactively. Biometrics, 37, 391-411.
+
+```{r}
+library(datasets)
+head(mtcars, 3)
+```
+
+---
+
+## mtcars dataset - Format
+
+**A data frame with 32 observations on 11 variables.**
+
+| Index | Field | Detail |
+------- | ----- | ------ |
+| [, 1] | mpg | Miles/(US) gallon |
+| [, 2]  | cyl | Number of cylinders |
+| [, 3]	| disp | Displacement (cu.in.) |
+| [, 4]	| hp | Gross horsepower |
+| [, 5]	| drat | Rear axle ratio |
+| [, 6]	| wt | Weight (lb/1000) |
+| [, 7]	| qsec | 1/4 mile time |
+| [, 8]	| vs | V/S |
+| [, 9]	| am | Transmission (0 = automatic, 1 = manual) |
+| [,10]	| gear | Number of forward gears |
+| [,11]	| carb | Number of carburetors |
+
+---
+
+## Analysis - main code
+
+```{r, eval=FALSE}
+  ModelFit <- lm(mpg ~ hp + cyl + wt + am, data=mtcars)
+
+  mpg <- function(hp, cyl, wt, am) {
+    ModelFit$coefficients[1] + ModelFit$coefficients[2] * hp + 
+      ModelFit$coefficients[3] * cyl + ModelFit$coefficients[4] * wt +     ModelFit$coefficients[5]* am
+  }
+  ...
+  function(input, output) {
+    adjusted_weight <- reactive({input$wt/1000})
+    predicted_mpg <- reactive({mpg(input$hp, as.numeric(input$cyl), adjusted_weight(),as.numeric(input$am))})
+    output$inputValues <- renderPrint({paste(input$cyl, "cylinders, ",
+                                             input$hp, "horsepower, ",
+                                             input$wt, "lbs, ",
+                                             input$am, "transmission")})
+    output$prediction <- renderPrint({paste(round(predicted_mpg(), 2), "miles per gallon")})
+    output$plots <- renderPlot({
+      par(mfrow = c(2, 2))
+      # (1, 1)
+      with(mtcars, plot(hp, mpg,
+                        xlab='Gross Horsepower',
+                        ylab='MPG',
+                        main='MPG vs Horsepower'))
+      points(input$hp, predicted_mpg(), col='red', cex=3)                 
+      # (1, 2)
+      with(mtcars, plot(cyl, mpg,
+                        xlab='Number of Cylinders',
+                        ylab='MPG',
+                        main='MPG vs Cylinders'))
+      points(as.numeric(input$cyl), predicted_mpg(), col='red', cex=3)  
+      # (2, 1)
+      with(mtcars, plot(wt, mpg,
+                        xlab='Weight (lb/1000)',
+                        ylab='MPG',
+                        main='MPG vs Weight'))
+      points(adjusted_weight(), predicted_mpg(), col='red', cex=3)
+      # (2, 2)
+      with(mtcars, plot(wt, am,
+                        xlab='Transmission',
+                        ylab='MPG',
+                        main='MPG vs Transmission'))
+      points(as.numeric(input$am), predicted_mpg(), col='red', cex=3)  
+    })
+  }
+```
